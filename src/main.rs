@@ -2,17 +2,15 @@ mod models;
 mod repositories;
 mod services;
 mod handlers;
+mod routes;
 
-use axum::{
-    routing::{get, post, put, delete},
-    Router,
-};
 use sqlx::mysql::MySqlPoolOptions;
 use dotenv::dotenv;
 use std::{env, sync::Arc};
 use repositories::user_repository::UserRepository;
 use services::user_service::UserService;
-use handlers::user_handler;
+
+use crate::routes::user_routes::user_routes;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,13 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let user_service = Arc::new(UserService::new(user_repository));
     
     // Build routes
-    let app = Router::new()
-        .route("/users", post(user_handler::create_user))
-        .route("/users", get(user_handler::get_all_users))
-        .route("/users/{id}", get(user_handler::get_user))
-        .route("/users/{id}", put(user_handler::update_user))
-        .route("/users/{id}", delete(user_handler::delete_user))
-        .with_state(user_service);
+    let app = user_routes(user_service);
     
     // Start server
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
