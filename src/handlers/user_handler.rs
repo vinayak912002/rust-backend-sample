@@ -27,20 +27,27 @@ pub struct ErrorResponse {
     pub error : String,
 }
 
+
+// Service returns: Result<User, Error>
+// Handler must return: Result<(StatusCode, Json<UserResponse>), (StatusCode, Json<ErrorResponse>)>
+// That is why need to transform the result to one which axum expects
 pub async fn create_user(
     State(service): State<Arc<UserService>>,
     Json(payload): Json<CreateUserRequest>
 )->Result<(StatusCode, Json<UserResponse>),(StatusCode, Json<ErrorResponse>)>{
     match service.create_user(payload.name, payload.age).await {
-        Ok(user)=> Ok((
-            StatusCode::CREATED,
-            Json(UserResponse{
-                id:user.id,
-                name:user.name,
-                age:user.age,
-            }),
-        )),
+        Ok(user)=>
+         // Transform User -> (StatusCode, Json<UserResponse>)
+            Ok((
+                StatusCode::CREATED,
+                Json(UserResponse{
+                    id:user.id,
+                    name:user.name,
+                    age:user.age,
+                }),
+            )),
         Err(e) => Err((
+            // Transform Error -> (StatusCode, Json<ErrorResponse>)
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse{
                 error: e.to_string(),
