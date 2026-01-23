@@ -5,6 +5,8 @@ mod handlers;
 mod routes;
 
 use sqlx::mysql::MySqlPoolOptions;
+use redis::Client as RedisClient;
+
 use dotenv::dotenv;
 use std::{env, sync::Arc};
 use repositories::user_repository::UserRepository;
@@ -16,6 +18,8 @@ use crate::routes::user_routes::user_routes;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     
+    let redis_url = env::var("REDIS_URL")
+        .expect("Please set the REDIS url in .env");
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
     
@@ -27,8 +31,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create repository
     let user_repository = UserRepository::new(pool);
     
+     // Build redis client
+    let redis_client = RedisClient::open(redis_url).expect("Failed to load Redis");
+
     // Create service
-    let user_service = Arc::new(UserService::new(user_repository));
+    let user_service = Arc::new(UserService::new(user_repository, redis_client));
     
     // Build routes
     let app = user_routes(user_service);
